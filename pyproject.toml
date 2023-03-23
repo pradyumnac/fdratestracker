@@ -12,6 +12,8 @@ beautifulsoup4 = "^4.12.0"
 lxml = "^4.9.2"
 pytablewriter = "^0.64.2"
 
+[tool.poetry.scripts]
+getrates = "getrates:run"
 
 [build-system]
 requires = ["poetry-core"]
