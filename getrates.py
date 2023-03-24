@@ -3,9 +3,6 @@
 '''
 Fetch Latest FD rates for various banks
 '''
-from io import StringIO
-import csv 
-import logging
 import requests
 
 import asyncio
