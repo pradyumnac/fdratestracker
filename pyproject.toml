@@ -15,6 +15,9 @@ pytablewriter = "^0.64.2"
 [tool.poetry.scripts]
 getrates = "getrates:run"
 
+[tool.poetry.group.dev.dependencies]
+memray = "^1.7.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
