@@ -120,8 +120,10 @@ async def get_rates(bankname: str):
 
     # if bankname == 'uco', remove top two ros
     match bankname:
-        case'uco':
+        case 'uco':
             rows = rows[2:]
+        case 'kotak':
+            rows = rows[3:]
     rate_tables[bankname] = rows
 
 def save():
