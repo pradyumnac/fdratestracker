@@ -6,6 +6,7 @@ Fetch Latest FD rates for various banks
 import datetime
 import json
 import os
+import re
 import requests
 
 import asyncio
@@ -18,24 +19,25 @@ bank_urls = {
     'icici': 'https://www.icicibank.com/personal-banking/deposits/fixed-deposit/fd-interest-rates',
     'sbi': 'https://sbi.co.in/web/interest-rates/deposit-rates/retail-domestic-term-deposits', 
     'uco': 'https://www.ucobank.com/english/interest-rate-deposit-account.aspx',
-    'kotak': 'https://www.kotak.com/en/rates/interest-rates.html', # TODO
-    'indusind': 'https://www.indusind.com/in/en/personal/rates.html', # TODO
-    'idfc': 'https://www.idfcfirstbank.com/personal-banking/deposits/fixed-deposit/fd-interest-rates', # TODO
-    'pnb': 'https://www.pnbindia.in/Interest-Rates-Deposit.html', # TODO
-    'unionbank': 'https://www.unionbankofindia.co.in/english/interest-rate.aspx', # TODO
-    'yesbank': 'https://www.yesbank.in/personal-banking/yes-individual/deposits/fixed-deposit', # TODO
-    'indianbank': 'https://www.indianbank.in/departments/deposit-rates/#!', # TODO
-    'indianoverseas': 'https://www.iob.in/Domestic_Rates', # TODO
-    'canarabank': 'https://canarabank.com/User_page.aspx?othlink=9', # TODO
-    'bankofbaroda': 'https://www.bankofbaroda.in/interest-rate-and-service-charges/deposits-interest-rates', # TODO
-    'bankofmaharashtra': 'https://bankofmaharashtra.in/domestic-term-deposits', # TODO
-    'bankofindia': 'https://bankofindia.co.in/interest-rates-on-deposits', # TODO
-    'centralbank': 'https://www.centralbankofindia.co.in/en/interest-rates-on-deposit', # TODO
-    'dhanlaxmibank': 'https://www.dhanbank.com/interest-rates/', # TODO
-    'dbs': 'https://www.dbs.com/in/treasures/common/interest-rates.page', # TODO
-    'federalbank': 'https://www.federalbank.co.in/deposit-rate', # TODO
-    'equitasbank': 'https://www.equitasbank.com/fixed-deposit', # TODO
-    'ujjivanbank': 'https://www.ujjivansfb.in/support-interest-rates', # TODO
+    # 'kotak': 'https://www.kotak.com/en/rates/interest-rates.html', # TODO
+    'kotak': 'https://www.kotak.com/bank/mailers/intrates/get_all_variable_data_latest.php?section=NRO_Term_Deposit', # TODO
+    # 'indusind': 'https://www.indusind.com/in/en/personal/rates.html', # TODO
+    # 'idfc': 'https://www.idfcfirstbank.com/personal-banking/deposits/fixed-deposit/fd-interest-rates', # TODO
+    # 'pnb': 'https://www.pnbindia.in/Interest-Rates-Deposit.html', # TODO
+    # 'unionbank': 'https://www.unionbankofindia.co.in/english/interest-rate.aspx', # TODO
+    # 'yesbank': 'https://www.yesbank.in/personal-banking/yes-individual/deposits/fixed-deposit', # TODO
+    # 'indianbank': 'https://www.indianbank.in/departments/deposit-rates/#!', # TODO
+    # 'indianoverseas': 'https://www.iob.in/Domestic_Rates', # TODO
+    # 'canarabank': 'https://canarabank.com/User_page.aspx?othlink=9', # TODO
+    # 'bankofbaroda': 'https://www.bankofbaroda.in/interest-rate-and-service-charges/deposits-interest-rates', # TODO
+    # 'bankofmaharashtra': 'https://bankofmaharashtra.in/domestic-term-deposits', # TODO
+    # 'bankofindia': 'https://bankofindia.co.in/interest-rates-on-deposits', # TODO
+    # 'centralbank': 'https://www.centralbankofindia.co.in/en/interest-rates-on-deposit', # TODO
+    # 'dhanlaxmibank': 'https://www.dhanbank.com/interest-rates/', # TODO
+    # 'dbs': 'https://www.dbs.com/in/treasures/common/interest-rates.page', # TODO
+    # 'federalbank': 'https://www.federalbank.co.in/deposit-rate', # TODO
+    # 'equitasbank': 'https://www.equitasbank.com/fixed-deposit', # TODO
+    # 'ujjivanbank': 'https://www.ujjivansfb.in/support-interest-rates', # TODO
     # 'axis': 'https://www.axisbank.com/docs/default-source/interest-rates-new/fixed-deposit-wef-29-03-2023.pdf', # TODO
     # 'allahabadbank': '', # Meged with Indian bank
     # 'corporationbank': '', # merged with union bank
@@ -45,31 +47,56 @@ bank_urls = {
 rate_tables = {}
 
 # get the table html node for the bank
-def get_table_node(soup: BeautifulSoup, bankname: str):
-    if bankname == 'icici':
-        return soup.find('div', {'class': 'main-contentz'}).find('table')
-    elif bankname == 'hdfc':
-        return soup.find('table', {'class': 'rates-table-main'})
-    elif bankname == 'sbi':
-        return soup.find('div', {'class': 'featureList'}).find('table')
-    elif bankname == 'uco':
-        return soup.find_all('table', {'class': 'table'})[1]
-    elif bankname == 'kotak':
-        pass
-    elif bankname == 'indusind':
-        pass
-    elif bankname == 'idfc':
-        pass
-    elif bankname == 'pnb':
-        pass
-    elif bankname == 'unionbank':
-        pass
-    elif bankname == 'yesbank':
-        pass
-    elif bankname == 'indianbank':
-        pass
-    else:
-        raise Exception('Bank not supported')
+def get_table_node(resp: str, bankname: str):
+    soup = BeautifulSoup(resp, 'lxml')
+    match bankname:
+        case 'icici':
+            return soup.find('div', {'class': 'main-contentz'}).find('table')
+        case  'hdfc':
+            return soup.find('table', {'class': 'rates-table-main'})
+        case  'sbi':
+            return soup.find('div', {'class': 'featureList'}).find('table')
+        case  'uco':
+            return soup.find_all('table', {'class': 'table'})[1]
+        case  'kotak':
+            table_html = re.sub(r'.*document.write\(\"(.+)\"\)\;.*',r'\1',resp.strip())
+            return BeautifulSoup(table_html, 'lxml').find('table')
+        case  'indusind':
+            pass
+        case  'idfc':
+            pass
+        case  'pnb':
+            pass
+        case  'unionbank':
+            pass
+        case  'yesbank':
+            pass
+        case  'indianbank':
+            pass
+        case  'indianoverseas':
+            pass
+        case  'canarabank':
+            pass
+        case  'bankofbaroda':
+            pass
+        case  'bankofmaharashtra':
+            pass
+        case  'bankofindia':
+            pass
+        case  'centralbank':
+            pass
+        case  'dhanlaxmibank':
+            pass
+        case  'dbs':
+            pass
+        case  'federalbank':
+            pass
+        case  'equitasbank':
+            pass
+        case  'ujjivanbank':
+            pass
+        case _:
+            raise Exception('Bank not supported')
 
 # get fd rates for icici
 async def get_rates(bankname: str):
@@ -79,8 +106,8 @@ async def get_rates(bankname: str):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 
     r = requests.get(url, headers=headers)
-    soup = BeautifulSoup(r.text, 'lxml')
-    rates = get_table_node(soup, bankname)
+    
+    rates = get_table_node(r.text, bankname)
 
     # convert the html node rates to csv
     # headers = [th.text.strip() for th in rates.select("tr th")[-1]]
@@ -92,8 +119,9 @@ async def get_rates(bankname: str):
     rows = [row for row in rows if any(row)]
 
     # if bankname == 'uco', remove top two ros
-    if bankname == 'uco':
-        rows = rows[2:]
+    match bankname:
+        case'uco':
+            rows = rows[2:]
     rate_tables[bankname] = rows
 
 def save():
@@ -124,4 +152,9 @@ async def main():
         # writer.write_table()
 
 if __name__ == '__main__':
+    # Test snippet
+    # asyncio.run(get_rates('kotak'))
+    # print(rate_tables)
+
+    # Run all
     asyncio.run(main())
