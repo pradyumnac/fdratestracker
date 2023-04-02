@@ -28,7 +28,7 @@ bank_urls = {
     # 'yesbank': 'https://www.yesbank.in/personal-banking/yes-individual/deposits/fixed-deposit', # TODO
     # 'indianbank': 'https://www.indianbank.in/departments/deposit-rates/#!', # TODO
     # 'indianoverseas': 'https://www.iob.in/Domestic_Rates', # TODO
-    # 'canarabank': 'https://canarabank.com/User_page.aspx?othlink=9', # TODO
+    'canarabank': 'https://canarabank.com/User_page.aspx?othlink=9', # TODO
     'bankofbaroda': 'https://www.bankofbaroda.in/interest-rate-and-service-charges/deposits-interest-rates', # TODO
     # 'bankofmaharashtra': 'https://bankofmaharashtra.in/domestic-term-deposits', # TODO
     # 'bankofindia': 'https://bankofindia.co.in/interest-rates-on-deposits', # TODO
@@ -76,7 +76,7 @@ def get_table_node(resp: str, bankname: str):
         case  'indianoverseas':
             pass
         case  'canarabank':
-            pass
+            return soup.find_all('table')[1]
         case  'bankofbaroda':
             return soup.find_all('table')[1]
         case  'bankofmaharashtra':
@@ -111,6 +111,8 @@ def row_cleanup(bankname: str, rows: list)-> list:
         case 'bankofbaroda':
             # remove extra whitespace
             rows = [[re.sub(r'\s+', r' ',data) for data in row] for row in rows] 
+        case 'canarabank':
+            rows = rows[5:-1] # remove first row - header
     
     return rows
 
@@ -168,7 +170,7 @@ async def main():
 if __name__ == '__main__':
     # Test snippet
     if os.environ.get('ENV')=='test':
-        asyncio.run(get_rates('bankofbaroda'))
+        asyncio.run(get_rates('canarabank'))
         print(rate_tables)
     else:
         # Run all
