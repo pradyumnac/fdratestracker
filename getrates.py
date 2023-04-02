@@ -29,7 +29,7 @@ bank_urls = {
     # 'indianbank': 'https://www.indianbank.in/departments/deposit-rates/#!', # TODO
     # 'indianoverseas': 'https://www.iob.in/Domestic_Rates', # TODO
     # 'canarabank': 'https://canarabank.com/User_page.aspx?othlink=9', # TODO
-    # 'bankofbaroda': 'https://www.bankofbaroda.in/interest-rate-and-service-charges/deposits-interest-rates', # TODO
+    'bankofbaroda': 'https://www.bankofbaroda.in/interest-rate-and-service-charges/deposits-interest-rates', # TODO
     # 'bankofmaharashtra': 'https://bankofmaharashtra.in/domestic-term-deposits', # TODO
     # 'bankofindia': 'https://bankofindia.co.in/interest-rates-on-deposits', # TODO
     # 'centralbank': 'https://www.centralbankofindia.co.in/en/interest-rates-on-deposit', # TODO
@@ -78,7 +78,7 @@ def get_table_node(resp: str, bankname: str):
         case  'canarabank':
             pass
         case  'bankofbaroda':
-            pass
+            return soup.find_all('table')[1]
         case  'bankofmaharashtra':
             pass
         case  'bankofindia':
@@ -108,6 +108,9 @@ def row_cleanup(bankname: str, rows: list)-> list:
         case 'pnb':
             rows = rows[1:] # remove first row - header
             rows = [row[1:] for row in rows] # remove first column - si no
+        case 'bankofbaroda':
+            # remove extra whitespace
+            rows = [[re.sub(r'\s+', r' ',data) for data in row] for row in rows] 
     
     return rows
 
@@ -132,6 +135,7 @@ async def get_rates(bankname: str):
     rows = [row for row in rows if any(row)]
 
     rows = row_cleanup(bankname, rows)
+    
     rate_tables[bankname] = rows
 
 def save():
@@ -163,8 +167,9 @@ async def main():
 
 if __name__ == '__main__':
     # Test snippet
-    # asyncio.run(get_rates('pnb'))
-    # print(rate_tables)
-
-    # Run all
-    asyncio.run(main())
+    if os.environ.get('ENV')=='test':
+        asyncio.run(get_rates('bankofbaroda'))
+        print(rate_tables)
+    else:
+        # Run all
+        asyncio.run(main())
