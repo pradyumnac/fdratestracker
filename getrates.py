@@ -23,7 +23,7 @@ bank_urls = {
     'kotak': 'https://www.kotak.com/bank/mailers/intrates/get_all_variable_data_latest.php?section=NRO_Term_Deposit', # TODO
     # 'indusind': 'https://www.indusind.com/in/en/personal/rates.html', # TODO
     # 'idfc': 'https://www.idfcfirstbank.com/personal-banking/deposits/fixed-deposit/fd-interest-rates', # TODO
-    # 'pnb': 'https://www.pnbindia.in/Interest-Rates-Deposit.html', # TODO
+    'pnb': 'https://www.pnbindia.in/Interest-Rates-Deposit.html', # TODO
     # 'unionbank': 'https://www.unionbankofindia.co.in/english/interest-rate.aspx', # TODO
     # 'yesbank': 'https://www.yesbank.in/personal-banking/yes-individual/deposits/fixed-deposit', # TODO
     # 'indianbank': 'https://www.indianbank.in/departments/deposit-rates/#!', # TODO
@@ -66,7 +66,7 @@ def get_table_node(resp: str, bankname: str):
         case  'idfc':
             pass
         case  'pnb':
-            pass
+            return soup.find('div', {'id': 'fa-tab132'}).find('table')
         case  'unionbank':
             pass
         case  'yesbank':
@@ -98,6 +98,19 @@ def get_table_node(resp: str, bankname: str):
         case _:
             raise Exception('Bank not supported')
 
+def row_cleanup(bankname: str, rows: list)-> list:
+    # if bankname == 'uco', remove top two ros
+    match bankname:
+        case 'uco':
+            rows = rows[2:]
+        case 'kotak':
+            rows = rows[3:]
+        case 'pnb':
+            rows = rows[1:] # remove first row - header
+            rows = [row[1:] for row in rows] # remove first column - si no
+    
+    return rows
+
 # get fd rates for icici
 async def get_rates(bankname: str):
     url = bank_urls[bankname]
@@ -118,12 +131,7 @@ async def get_rates(bankname: str):
     # remove row fron rows if all of its members are empty
     rows = [row for row in rows if any(row)]
 
-    # if bankname == 'uco', remove top two ros
-    match bankname:
-        case 'uco':
-            rows = rows[2:]
-        case 'kotak':
-            rows = rows[3:]
+    rows = row_cleanup(bankname, rows)
     rate_tables[bankname] = rows
 
 def save():
@@ -155,7 +163,7 @@ async def main():
 
 if __name__ == '__main__':
     # Test snippet
-    # asyncio.run(get_rates('kotak'))
+    # asyncio.run(get_rates('pnb'))
     # print(rate_tables)
 
     # Run all
